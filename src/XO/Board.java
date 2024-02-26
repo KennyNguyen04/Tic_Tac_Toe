@@ -1,4 +1,5 @@
 package XO;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -12,12 +13,9 @@ public class Board extends JPanel {
     private static final int N = 3;
     private static final int M = 3;
 
-
     public static final int ST_DRAW = 0;
     public static final int ST_WIN = 1;
     public static final int ST_NORMAL = 2;
-
-    //0: Hòa (hết nước không ai thắng cả), 1: Player hiện tại thắng, 2: Player hiện tại chưa thắng (còn nước đánh tiếp)
 
     private EndGameListener endGameListener;
     private Image imgX;
@@ -44,10 +42,7 @@ public class Board extends JPanel {
                     return;
                 }
 
-                //phát ra âm thanh
                 soundClick();
-
-                //Tính toán xem x, y rơi vào ô nào trong board, sau đó vẽ hình x, o tùy ý
                 for(int i = 0 ; i < N; i++){
                     for(int j = 0 ; j < M; j++){
                         Cell cell = matrix[i][j];
@@ -62,13 +57,10 @@ public class Board extends JPanel {
                             if(cell.getValue().equals(Cell.EMPTY_VALUE)){
                                 cell.setValue(currentPlayer);
                                 repaint();
-                                int result = checkWin(currentPlayer);
-                                if(endGameListener != null){
-                                    endGameListener.end(currentPlayer, result);
-                                }
-
-                                if(result == ST_NORMAL){
-                                    currentPlayer = currentPlayer.equals(Cell.O_VALUE) ? Cell.X_VALUE : Cell.O_VALUE;
+                                checkResult(currentPlayer);
+                                currentPlayer = currentPlayer.equals(Cell.O_VALUE) ? Cell.X_VALUE : Cell.O_VALUE; // Change player
+                                if (currentPlayer.equals(Cell.X_VALUE)) {
+                                    makeAIMove(); // AI makes a move if it's the AI's turn
                                 }
                             }
                         }
@@ -76,7 +68,6 @@ public class Board extends JPanel {
                 }
             }
         });
-
         try{
             imgX = ImageIO.read(getClass().getResource("x.png"));
             imgO = ImageIO.read(getClass().getResource("o.png"));
@@ -86,7 +77,7 @@ public class Board extends JPanel {
     }
 
     private synchronized void soundClick(){
-        Thread thread = new Thread(new Runnable() {
+    	Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try{
@@ -103,15 +94,22 @@ public class Board extends JPanel {
     }
 
     private void initMatrix(){
-        for(int i = 0 ; i < N; i++){
-            for(int j = 0 ; j < M; j++){
+    	for (int i = 0; i < N; i++) {
+            for (int j = 0; j < M; j++) {
                 Cell cell = new Cell();
                 matrix[i][j] = cell;
             }
         }
     }
 
-
+ 
+    private void checkResult(String player) {
+        int result = checkWin(player);
+        if (endGameListener != null) {
+            endGameListener.end(player, result);
+        }
+    }
+    
     public void setCurrentPlayer(String currentPlayer) {
         this.currentPlayer = currentPlayer;
     }
@@ -120,9 +118,7 @@ public class Board extends JPanel {
         this.endGameListener = endGameListener;
     }
 
-    public String getCurrentPlayer() {
-        return currentPlayer;
-    }
+    
 
     public void reset(){
         this.initMatrix();
@@ -130,48 +126,26 @@ public class Board extends JPanel {
         repaint();
     }
 
-    //0: Hòa (hết nước không ai thắng cả), 1: Player hiện tại thắng, 2: Player hiện tại chưa thắng (còn nước đánh tiếp)
     public int checkWin(String player){
-        //Đường chéo thứ nhất
         if(this.matrix[0][0].getValue().equals(player) && this.matrix[1][1].getValue().equals(player) && this.matrix[2][2].getValue().equals(player)){
             return ST_WIN;
         }
 
-        //Đường chéo thứ hai
         if(this.matrix[0][2].getValue().equals(player) && this.matrix[1][1].getValue().equals(player) && this.matrix[2][0].getValue().equals(player)){
             return ST_WIN;
         }
 
-        //Dòng thứ 1
-        if(this.matrix[0][0].getValue().equals(player) && this.matrix[0][1].getValue().equals(player) && this.matrix[0][2].getValue().equals(player)){
-            return ST_WIN;
+        for(int i = 0; i < N; i++){
+            if(this.matrix[i][0].getValue().equals(player) && this.matrix[i][1].getValue().equals(player) && this.matrix[i][2].getValue().equals(player)){
+                return ST_WIN;
+            }
         }
 
-        //Dòng thứ 2
-        if(this.matrix[1][0].getValue().equals(player) && this.matrix[1][1].getValue().equals(player) && this.matrix[1][2].getValue().equals(player)){
-            return ST_WIN;
+        for(int i = 0; i < M; i++){
+            if(this.matrix[0][i].getValue().equals(player) && this.matrix[1][i].getValue().equals(player) && this.matrix[2][i].getValue().equals(player)){
+                return ST_WIN;
+            }
         }
-
-        //Dòng thứ 3
-        if(this.matrix[2][0].getValue().equals(player) && this.matrix[2][1].getValue().equals(player) && this.matrix[2][2].getValue().equals(player)){
-            return ST_WIN;
-        }
-
-        //Cột thứ 1
-        if(this.matrix[0][0].getValue().equals(player) && this.matrix[1][0].getValue().equals(player) && this.matrix[2][0].getValue().equals(player)){
-            return ST_WIN;
-        }
-
-        //Cột thứ 2
-        if(this.matrix[0][1].getValue().equals(player) && this.matrix[1][1].getValue().equals(player) && this.matrix[2][1].getValue().equals(player)){
-            return ST_WIN;
-        }
-
-        //Cột thứ 2
-        if(this.matrix[0][2].getValue().equals(player) && this.matrix[1][2].getValue().equals(player) && this.matrix[2][2].getValue().equals(player)){
-            return 1;
-        }
-
 
         if(this.isFull()){
             return ST_DRAW;
@@ -182,7 +156,6 @@ public class Board extends JPanel {
 
     private boolean isFull(){
         int number = N * M;
-
         int k = 0;
         for(int i = 0 ; i < N; i++){
             for(int j = 0 ; j < M; j++){
@@ -192,26 +165,23 @@ public class Board extends JPanel {
                 }
             }
         }
-
         return k == number;
     }
 
     @Override
-    public void paint(Graphics g) {
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
         int w = getWidth() / 3;
         int h = getHeight() / 3;
 
         Graphics2D graphic2d = (Graphics2D) g;
 
-
-
         int k = 0;
-        for (int i = 0; i < N; i++){
-            for (int j = 0; j < M; j++){
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < M; j++) {
                 int x = j * w;
                 int y = i * h;
 
-                //Cập nhật lại ma trận
                 Cell cell = matrix[i][j];
                 cell.setX(x);
                 cell.setY(y);
@@ -220,28 +190,132 @@ public class Board extends JPanel {
 
                 Color color = k % 2 == 0 ? Color.PINK : Color.GRAY;
                 graphic2d.setColor(color);
-                graphic2d.fillRect(x,y, w, h);
+                graphic2d.fillRect(x, y, w, h);
 
-                if(cell.getValue().equals(Cell.X_VALUE)){
-                    Image img = imgX;
-                    graphic2d.drawImage(img, x, y, w, h, this);
-                }else if(cell.getValue().equals(Cell.O_VALUE)){
-                    Image img = imgO;
-                    graphic2d.drawImage(img, x, y, w, h, this);
+                if (cell.getValue().equals(Cell.X_VALUE)) {
+                    graphic2d.drawImage(imgX, x, y, w, h, this);
+                } else if (cell.getValue().equals(Cell.O_VALUE)) {
+                    graphic2d.drawImage(imgO, x, y, w, h, this);
                 }
 
                 k++;
             }
         }
     }
-	 public synchronized void soundStart() {
-			try {
-				Clip clip = AudioSystem.getClip();
-				AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(getClass().getResource("StartS.wav"));
-				clip.open(audioInputStream);
-				clip.start();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
+
+    public void makeAIMove() {
+        if (isFull() || checkWin(Cell.X_VALUE) != ST_NORMAL) {
+            return;
+        }
+
+        char[] boardState = convertBoardStateToArray();
+        int bestMove = miniMax(boardState, 'O');
+        int row = bestMove / N;
+        int col = bestMove % N;
+        Cell cell = matrix[row][col];
+        if (cell.getValue().equals(Cell.EMPTY_VALUE)) { // Check if the cell is empty
+            cell.setValue(currentPlayer);
+            repaint();
+            checkResult(currentPlayer);
+            currentPlayer = currentPlayer.equals(Cell.O_VALUE) ? Cell.X_VALUE : Cell.O_VALUE;
+        }
+    }
+
+
+    private char[] convertBoardStateToArray() {
+        char[] boardState = new char[N * M];
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < M; j++) {
+                Cell cell = matrix[i][j];
+                String value = cell.getValue();
+                char charValue = value.isEmpty() ? '-' : value.charAt(0);
+                boardState[i * N + j] = charValue;
+            }
+        }
+        return boardState;
+    }
+
+
+    public int miniMax(char[] node, char playerSymbol) {
+        int gameResult = checkWin(node);
+        if (gameResult != ST_NORMAL) {
+            return score(gameResult);
+        }
+        if (playerSymbol == 'O') {
+            int bestScore = Integer.MIN_VALUE;
+            int bestMove = -1;
+            for (int i = 0; i < node.length; i++) {
+                if (node[i] == '-') {
+                    node[i] = playerSymbol;
+                    int score = miniMax(node, 'X');
+                    node[i] = '-';
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = i;
+                    }
+                }
+            }
+            return bestMove;
+        } else {
+            int bestScore = Integer.MAX_VALUE;
+            int bestMove = -1;
+            for (int i = 0; i < node.length; i++) {
+                if (node[i] == '-') {
+                    node[i] = playerSymbol;
+                    int score = miniMax(node, 'O');
+                    node[i] = '-';
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestMove = i;
+                    }
+                }
+            }
+            return bestMove;
+        }
+    }
+
+    private int checkWin(char[] node) {
+        if (node[0] == node[4] && node[4] == node[8] && node[0] != '-') {
+            return ST_WIN;
+        }
+        if (node[2] == node[4] && node[4] == node[6] && node[2] != '-') {
+            return ST_WIN;
+        }
+        for (int i = 0; i < N; i++) {
+            if (node[i * N] == node[i * N + 1] && node[i * N + 1] == node[i * N + 2] && node[i * N] != '-') {
+                return ST_WIN;
+            }
+            if (node[i] == node[i + N] && node[i + N] == node[i + 2 * N] && node[i] != '-') {
+                return ST_WIN;
+            }
+        }
+        for (int i = 0; i < node.length; i++) {
+            if (node[i] == '-') {
+                return ST_NORMAL;
+            }
+        }
+        return ST_DRAW;
+    }
+
+    private int score(int gameResult) {
+        switch (gameResult) {
+            case ST_WIN:
+                return 10;
+            case ST_DRAW:
+                return 0;
+            default:
+                return -10;
+        }
+    }
+    
+    public synchronized void soundStart() {
+        try {
+            Clip clip = AudioSystem.getClip();
+            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(getClass().getResource("StartS.wav"));
+            clip.open(audioInputStream);
+            clip.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
